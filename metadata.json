@@ -1,0 +1,9 @@
+{
+  "name": "ARWEEN - Truth-Driven Evolution",
+  "description": "แพลตฟอร์มระบบนิเวศทางธุรกิจ (Ecosystem Enabler) และทางออกเชิงโครงสร้าง (Structural Exit) สำหรับอุตสาหกรรมโลจิสติกส์ ขับเคลื่อนด้วย AI, Telemetry และสวัสดิการสังคม",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
