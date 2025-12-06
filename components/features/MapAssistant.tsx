@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getWeatherInsight, getAutocompleteSuggestions, queryLocationIntelligence, WeatherData } from '../../services/geminiService';
-import { Search, Truck, AlertTriangle, Navigation, Layers, MapPin, ZoomIn, ZoomOut, RefreshCw, CloudRain, Sun, Cloud, CloudLightning, Wind, Droplets, Thermometer, Filter, X, LayoutGrid, LocateFixed, Volume2, VolumeX, Siren, Navigation2, Circle, Octagon, Info, MousePointer2, List, ShieldCheck, ArrowRight, CornerUpRight, CheckCircle, ArrowUpRight, Flag, Building2, Anchor, Map, ExternalLink, Loader2, Sparkles } from 'lucide-react';
+import { Search, Truck, AlertTriangle, Navigation, Layers, MapPin, ZoomIn, ZoomOut, RefreshCw, CloudRain, Sun, Cloud, CloudLightning, Wind, Droplets, Thermometer, Filter, X, LayoutGrid, LocateFixed, Volume2, VolumeX, Siren, Navigation2, Circle, Octagon, Info, MousePointer2, List, ShieldCheck, ArrowRight, CornerUpRight, CheckCircle, ArrowUpRight, Flag, Building2, Anchor, Map, ExternalLink, Loader2, Sparkles, Crosshair } from 'lucide-react';
 
 // --- Types & Constants ---
 
@@ -118,6 +117,11 @@ export const MapAssistant: React.FC = () => {
   const [audioEnabled, setAudioEnabled] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastBeepTimeRef = useRef(0);
+
+  // User Location State
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [outOfBoundsWarning, setOutOfBoundsWarning] = useState(false);
 
   // --- Audio Logic (Synthesizer) ---
   const playAlertSound = useCallback(() => {
@@ -249,6 +253,49 @@ export const MapAssistant: React.FC = () => {
     } finally {
         setIsAnalyzingLocation(false);
     }
+  };
+
+  // --- Coordinate Helpers ---
+  const getPos = (lat: number, lng: number) => {
+    const y = ((BOUNDS.maxLat - lat) / (BOUNDS.maxLat - BOUNDS.minLat)) * 100;
+    const x = ((lng - BOUNDS.minLng) / (BOUNDS.maxLng - BOUNDS.minLng)) * 100;
+    return { top: Math.max(0, Math.min(100, y)), left: Math.max(0, Math.min(100, x)) };
+  };
+
+  // --- Locate Me Logic with Out of Bounds Check ---
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+        alert("Geolocation is not supported by this browser.");
+        return;
+    }
+    setIsLocating(true);
+    setOutOfBoundsWarning(false);
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            setIsLocating(false);
+
+            // Check if user is within reasonable distance of Chonburi Demo bounds
+            // Simple check: Lat between 12-14, Lng between 100-102
+            if (latitude < 12 || latitude > 14 || longitude < 100 || longitude > 102) {
+               setOutOfBoundsWarning(true);
+               // Mock location near Laem Chabang for demo continuity
+               setUserLocation({ lat: 13.08, lng: 100.88 });
+               setPan({ x: 0, y: 0 }); 
+               setZoom(2.0);
+            } else {
+               setUserLocation({ lat: latitude, lng: longitude });
+               setPan({ x: 0, y: 0 }); 
+               setZoom(2.0);
+            }
+        },
+        (error) => {
+            console.error(error);
+            setIsLocating(false);
+            alert("ไม่สามารถระบุตำแหน่งได้ กรุณาเปิด GPS");
+        }
+    );
   };
 
   // --- Simulation & Proximity Loop ---
@@ -395,13 +442,6 @@ export const MapAssistant: React.FC = () => {
       case 'LOW': return 'ต่ำ (สีเขียว)';
       default: return level;
     }
-  };
-
-  // --- Coordinate Helpers ---
-  const getPos = (lat: number, lng: number) => {
-    const y = ((BOUNDS.maxLat - lat) / (BOUNDS.maxLat - BOUNDS.minLat)) * 100;
-    const x = ((lng - BOUNDS.minLng) / (BOUNDS.maxLng - BOUNDS.minLng)) * 100;
-    return { top: Math.max(0, Math.min(100, y)), left: Math.max(0, Math.min(100, x)) };
   };
 
   // --- Clustering Logic ---
@@ -704,6 +744,26 @@ export const MapAssistant: React.FC = () => {
                     </div>
                   );
                 })}
+
+                {/* User Location Marker (Real GPS) */}
+                {userLocation && (
+                  <div 
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 z-30 flex items-center justify-center pointer-events-none"
+                    style={{ top: `${getPos(userLocation.lat, userLocation.lng).top}%`, left: `${getPos(userLocation.lat, userLocation.lng).left}%` }}
+                  >
+                      {/* Pulsing Blue Dot */}
+                      <div className="relative">
+                          <div className="w-5 h-5 bg-blue-500 rounded-full border-2 border-white shadow-lg relative z-10"></div>
+                          <div className="absolute inset-0 w-full h-full bg-blue-500 rounded-full animate-ping opacity-75"></div>
+                          {/* Accuracy Circle Simulation */}
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-blue-500/10 rounded-full border border-blue-500/20"></div>
+                      </div>
+                      {/* Label */}
+                      <div className="absolute top-full mt-2 bg-blue-600/90 text-white text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap shadow-lg">
+                          ตำแหน่งของฉัน {outOfBoundsWarning ? '(นอกพื้นที่)' : ''}
+                      </div>
+                  </div>
+                )}
                 
                 {/* Safe Zone Marker (When active) */}
                 {(reroutedVehicles.size > 0 || arrivalNotification) && (
@@ -757,6 +817,17 @@ export const MapAssistant: React.FC = () => {
 
         {/* --- 2. FLOATING UI CONTROLS --- */}
 
+        {/* Out of Bounds Warning Notification */}
+        {outOfBoundsWarning && (
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-orange-900/90 backdrop-blur-md border border-orange-500/50 text-orange-200 px-4 py-2 rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
+                <AlertTriangle className="w-5 h-5 text-orange-500" />
+                <div className="text-xs">
+                    <span className="font-bold">อยู่นอกพื้นที่ให้บริการ (Out of Demo Area)</span>
+                    <br/>แสดงตำแหน่งจำลองในเขต Chonburi Sandbox
+                </div>
+            </div>
+        )}
+
         <div className="absolute top-4 left-4 z-40 w-full max-w-xs sm:max-w-sm">
              <div className="relative group">
                 <div className="absolute inset-y-0 left-3 flex items-center text-slate-400 pointer-events-none"><Search className="w-4 h-4" /></div>
@@ -801,6 +872,14 @@ export const MapAssistant: React.FC = () => {
              </div>
 
              <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-2xl p-1.5 shadow-xl flex items-center gap-1 pointer-events-auto">
+               <button 
+                  onClick={handleLocateMe}
+                  className={`p-2 rounded-xl transition-colors ${isLocating ? 'text-blue-400 animate-pulse bg-blue-900/20' : 'text-slate-400 hover:text-white hover:bg-white/10'} ${userLocation ? 'text-blue-400' : ''}`}
+                  title="ตำแหน่งของฉัน"
+               >
+                   {isLocating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Crosshair className="w-5 h-5" />}
+               </button>
+               <div className="w-px h-5 bg-slate-700 mx-1"></div>
                <button onClick={() => handleZoom('out')} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"><ZoomOut className="w-5 h-5" /></button>
                <button onClick={handleResetView} className="px-3 py-1 text-xs font-mono text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors border border-transparent hover:border-slate-600">{Math.round(zoom * 100)}%</button>
                <button onClick={() => handleZoom('in')} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"><ZoomIn className="w-5 h-5" /></button>

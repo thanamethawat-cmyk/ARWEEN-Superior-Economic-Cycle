@@ -4,10 +4,11 @@ import { RouteOptimizer } from './features/RouteOptimizer';
 import { OperationalKPI } from './features/SafetyScanner';
 import { MapAssistant } from './features/MapAssistant';
 import { DriverWallet } from './features/DriverWallet';
-import { BrainCircuit, BarChart3, MapPin, Cpu, Wallet } from 'lucide-react';
+import { SystemAdmin } from './features/SystemAdmin';
+import { BrainCircuit, BarChart3, MapPin, Cpu, Wallet, ShieldAlert } from 'lucide-react';
 
 export const GeminiDemo: React.FC = () => {
-  const [activeFeature, setActiveFeature] = useState<'optimizer' | 'safety' | 'map' | 'wallet'>('optimizer');
+  const [activeFeature, setActiveFeature] = useState<'optimizer' | 'safety' | 'map' | 'wallet' | 'admin'>('optimizer');
 
   return (
     <div className="max-w-7xl mx-auto px-4">
@@ -22,8 +23,8 @@ export const GeminiDemo: React.FC = () => {
       </div>
 
       {/* Control Console Navigation */}
-      <div className="flex justify-center mb-10">
-        <div className="bg-slate-900/80 backdrop-blur-md p-1.5 rounded-2xl border border-slate-700 inline-grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2 shadow-2xl w-full sm:w-auto">
+      <div className="flex justify-center mb-10 overflow-x-auto">
+        <div className="bg-slate-900/80 backdrop-blur-md p-1.5 rounded-2xl border border-slate-700 inline-flex gap-1 sm:gap-2 shadow-2xl min-w-max">
           <button
             onClick={() => setActiveFeature('optimizer')}
             className={`flex items-center justify-center sm:justify-start gap-2.5 px-4 sm:px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
@@ -75,6 +76,19 @@ export const GeminiDemo: React.FC = () => {
             <span className="hidden sm:inline">Smart Wallet</span>
             <span className="sm:hidden">Wallet</span>
           </button>
+
+          <button
+            onClick={() => setActiveFeature('admin')}
+            className={`flex items-center justify-center sm:justify-start gap-2.5 px-4 sm:px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
+              activeFeature === 'admin'
+                ? 'bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-900/40 scale-[1.02]'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span className="hidden sm:inline">System Admin</span>
+            <span className="sm:hidden">Admin</span>
+          </button>
         </div>
       </div>
 
@@ -86,6 +100,7 @@ export const GeminiDemo: React.FC = () => {
           {activeFeature === 'safety' && <OperationalKPI />}
           {activeFeature === 'map' && <MapAssistant />}
           {activeFeature === 'wallet' && <DriverWallet />}
+          {activeFeature === 'admin' && <SystemAdmin />}
         </div>
       </div>
       

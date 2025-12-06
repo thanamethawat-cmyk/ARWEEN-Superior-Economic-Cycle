@@ -63,7 +63,6 @@ export const optimizeLogistics = async (origin: string, destination: string, car
       config: {
         responseMimeType: 'application/json',
         thinkingConfig: { thinkingBudget: 8000 }, // Sufficient for analysis
-        maxOutputTokens: 4096,
       }
     });
     
@@ -222,7 +221,7 @@ export const queryLocationIntelligence = async (query: string, lat: number, long
   }
 };
 
-// 5. Fast AI: Quick Chatbot
+// 5. Fast AI: Quick Chatbot (Optimized for Voice)
 export const fastChat = async (message: string): Promise<string> => {
   const ai = getAiClient();
 
@@ -231,7 +230,7 @@ export const fastChat = async (message: string): Promise<string> => {
       model: ModelType.Fast,
       contents: message,
       config: {
-        systemInstruction: "คุณคือผู้ช่วย AI สำหรับ 'เจ้าหน้าที่แอดมิน' (Operations Staff) ของแพลตฟอร์ม ARWEEN หน้าที่คือช่วยตรวจสอบข้อมูล แก้ปัญหาให้คนขับ และอนุมัติงาน ตอบสั้นกระชับ เป็นทางการแต่เป็นกันเอง ภาษาไทย"
+        systemInstruction: "คุณคือ 'ARWEEN Voice Assistant' ผู้ช่วยอัจฉริยะสำหรับคนขับรถบรรทุก หน้าที่คือช่วยเหลือ แจ้งเตือนภัย และตอบคำถามเส้นทาง\n\nข้อกำหนดการตอบ:\n1. ตอบสั้น กระชับ (ไม่เกิน 2 ประโยค) เพื่อให้เหมาะกับการฟังขณะขับรถ\n2. ใช้น้ำเสียงกระตือรือร้น สุภาพ และเป็นกันเอง (แบบ Co-pilot มืออาชีพ)\n3. หากเป็นเรื่องฉุกเฉิน ให้ตอบทันทีและสั้นที่สุด\n4. ใช้ภาษาไทยเป็นหลัก"
       }
     });
     return response.text || "ขออภัย ฉันไม่เข้าใจคำถาม";
@@ -299,7 +298,10 @@ export const getAutocompleteSuggestions = async (query: string, lat: number, lng
     // Note: responseMimeType is NOT supported with tools (googleMaps)
     const response = await ai.models.generateContent({
       model: ModelType.Maps,
-      contents: `List 4 specific real-world place names or POIs matching "${query}" near lat:${lat}, lng:${lng}. Return ONLY a valid JSON array of strings (e.g. ["Place A", "Place B"]). No markdown formatting.`,
+      contents: `List 4 specific real-world place names or POIs matching "${query}" near lat:${lat}, lng:${lng}. 
+      Return ONLY a valid JSON array of strings (e.g. ["Place A", "Place B"]). 
+      No markdown formatting.
+      IMPORTANT: Return place names in Thai language (ภาษาไทย).`,
       config: {
         tools: [{ googleMaps: {} }],
       }
@@ -361,5 +363,38 @@ export const analyzeFinancialHealth = async (incomeData: any[], transactions: an
   } catch (error) {
     console.error("Financial analysis error:", error);
     return null;
+  }
+};
+
+// 9. System Health Check for Admin Console
+export interface SystemTelemetry {
+  apiStatus: 'ONLINE' | 'DEGRADED' | 'OFFLINE';
+  latencyMs: number;
+  aiLoad: number;
+}
+
+export const checkSystemHealth = async (): Promise<SystemTelemetry> => {
+  const ai = getAiClient();
+  const startTime = Date.now();
+  try {
+    // Minimal generation to check connectivity
+    await ai.models.generateContent({
+      model: ModelType.Fast,
+      contents: "ping",
+      config: { maxOutputTokens: 1 }
+    });
+    const latency = Date.now() - startTime;
+    return {
+      apiStatus: 'ONLINE',
+      latencyMs: latency,
+      aiLoad: Math.min(100, Math.round(latency / 10)) // Mock load based on latency
+    };
+  } catch (error) {
+    console.error("Health Check Failed:", error);
+    return {
+      apiStatus: 'OFFLINE',
+      latencyMs: 0,
+      aiLoad: 0
+    };
   }
 };

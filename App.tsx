@@ -8,9 +8,15 @@ import { FounderStatement } from './components/FounderStatement';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'home' | 'dashboard'>('home');
+  const [language, setLanguage] = useState<'th' | 'en'>('th');
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+    <Layout 
+      activeTab={activeTab} 
+      setActiveTab={setActiveTab}
+      language={language}
+      setLanguage={setLanguage}
+    >
       {activeTab === 'home' ? (
         <div className="space-y-20 pb-20">
           <section id="vision" className="scroll-mt-24">
